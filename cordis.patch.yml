@@ -1,0 +1,14 @@
+# The @argszero/cordis-plugin-turn-budget-guard bundle patch. Defaults ask a turn
+# to wrap up after 20 steps and stop it 8 steps later; tune in a profile layer:
+#
+#   - set:
+#       - id: turn-budget-guard
+#         config:
+#           maxSteps: 30
+#           gracefulSteps: 10
+#           maxFires: 2
+#           cancelCause: turn-budget
+
+- insert:
+    - id: turn-budget-guard
+      name: '@argszero/cordis-plugin-turn-budget-guard'
