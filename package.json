@@ -1,7 +1,7 @@
 {
   "name": "@argszero/cordis-plugin-turn-budget-guard",
   "description": "Turn budget guard for dsh: caps the number of steps one agent turn may spend before the model is asked to wrap up, then stops the turn. Closes the 'no ceiling on action' gap measured in Discussion #6366 (33-50 turns / 32-70 tool calls for a one-field config edit). Watches agent/pre-step, never vetoes a productive turn, never discards user input. Compatible with dsh 0.1.2-rc.1 and the 0.1.5 line.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
@@ -38,16 +38,17 @@
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.2",
-    "@deepseek-ai/dsh-agent": ">=0.1.2-rc.1 <0.2.0 || >=0.1.5-alpha.1 <0.2.0",
-    "@deepseek-ai/dsh-llm": ">=0.1.2-rc.1 <0.2.0 || >=0.1.5-alpha.1 <0.2.0"
+    "@deepseek-ai/dsh-agent": ">=0.1.2-rc.1 <0.1.3 || >=0.1.3-alpha.2 <0.1.4 || >=0.1.5-alpha.1 <0.2.0 || >=0.1.6-alpha.1 <0.2.0",
+    "@deepseek-ai/dsh-llm": ">=0.1.2-rc.1 <0.1.3 || >=0.1.3-alpha.2 <0.1.4 || >=0.1.5-alpha.1 <0.2.0 || >=0.1.6-alpha.1 <0.2.0"
   },
   "dependencies": {
     "@deepseek-ai/schemastery": "^3.18.1"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "^4.0.2",
-    "@deepseek-ai/dsh-agent": "0.1.2-rc.1",
-    "@deepseek-ai/dsh-llm": "0.1.2-rc.1",
+    "@deepseek-ai/dsh-agent": "0.1.6-alpha.2",
+    "@deepseek-ai/dsh-llm": "0.1.6-alpha.2",
+    "semver": "^7.6.0",
     "typescript": "^5.5.0"
   },
   "scripts": {
