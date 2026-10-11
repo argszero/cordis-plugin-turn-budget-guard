@@ -94,7 +94,11 @@ test('it escalates to cancel and keeps queued user input', async () => {
   await preStep(ctx, agent, [], 1, 4) // maxFires spent -> stop
 
   assert.equal(agent.cancelled.length, 1)
-  assert.equal(agent.cancelled[0].cause, 'turn-budget')
+  // The cause must be a member of the closed `AgentCancelCause` union: the loop's
+  // `abortedCancelCause` ends in `assertNever`, so a bare string throws from inside
+  // the turn's `catch` and persists `turn/end` with `reason: null` (#8832, #9156).
+  // `hook` is the member a plugin owns, and the configured string is its reason.
+  assert.deepEqual(agent.cancelled[0].cause, { kind: 'hook', reason: 'turn-budget' })
   // Discarding the user's queued work would be the opposite of this guard's job.
   assert.deepEqual(agent.cancelled[0].options, { keepInbox: true })
 })

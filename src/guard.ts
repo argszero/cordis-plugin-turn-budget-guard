@@ -48,6 +48,17 @@
  * `agent.cancel(cause)` only after further steps produced no new attempt to
  * comply.
  *
+ * `agent.cancel()` takes the **closed** `AgentCancelCause` union
+ * (`packages/core/session/src/types.ts`), and the loop reads the abort signal back
+ * with `abortedCancelCause()` (`packages/core/agent-loop/src/agent.ts`), whose
+ * last branch is `default: return assertNever(cause)`. Anything outside the union
+ * throws **inside the turn's `catch`**, so `turnEnds` keeps its `null` initializer
+ * and the `finally` appends `turn/end` with `reason: null` — a record the write
+ * path never checks and the client's turn rendering cannot survive: one such row
+ * blanks the whole session list (#8832, #9156). This guard therefore hands over
+ * the union's `hook` member — `{ kind: 'hook', reason: <cancelCause> }`, the shape
+ * core itself writes for `deepseek-account/signed-out` — via `cancelCauseFor`.
+ *
  * Everything it adds to the transcript is a normal `user/message` with
  * `source.kind:'plugin'` carrying the plugin name, the convention
  * `guard/repeat-tool-reminder` uses
@@ -92,7 +103,13 @@ export interface ConfigInput {
    */
   maxFires?: number
   /**
-   * Cause string handed to `agent.cancel`. Default `'turn-budget'`.
+   * Cause **reason** handed to `agent.cancel`. Default `'turn-budget'`.
+   *
+   * It is the `reason` of the closed union's `hook` member, not a bare cause: the
+   * emitted value is `{ kind: 'hook', reason: <this string> }` and the persisted
+   * turn ending is
+   * `{ kind: 'aborted', reason: { kind: 'hook', reason: <this string> } }`. See
+   * {@link cancelCauseFor}.
    */
   cancelCause?: string
 }
@@ -156,9 +173,45 @@ export interface GuardableAgent {
   /**
    * Abort the active turn. The guard always passes `keepInbox` so queued user
    * input survives the stop (`packages/core/agent/src/runtime-types.ts`,
-   * `CancelOptions`).
+   * `CancelOptions`), and always passes a member of {@link AgentCancelCause}.
    */
-  cancel(cause?: string, options?: { keepInbox?: boolean }): void
+  cancel(cause: AgentCancelCause, options?: { keepInbox?: boolean }): void
+}
+
+/**
+ * Why an active turn may be cancelled — the union core treats as closed.
+ *
+ * Declared here rather than imported from `@deepseek-ai/dsh-agent` for the reason
+ * stated above: this module must load on a plain Cordis application, without the
+ * harness type graph. The four members and their importances are core's
+ * (`packages/core/session/src/types.ts`); a fifth `kind` is not additive, because
+ * the loop's reader ends in `assertNever`.
+ */
+export type AgentCancelCause =
+  | { readonly kind: 'user' }
+  | { readonly kind: 'parent' }
+  | { readonly kind: 'hook'; readonly reason: string }
+  | { readonly kind: 'disposed' }
+
+/**
+ * The cancellation cause this guard hands to `agent.cancel()`.
+ *
+ * `hook` is the member a plugin owns, and the one core uses itself
+ * (`{ kind: 'hook', reason: 'deepseek-account/signed-out' }`). The object matters,
+ * not the string: `abortedCancelCause()` copies a recognized `kind` back and
+ * `assertNever`s anything else, from inside the turn's `catch`, where the throw
+ * costs the `turnEnds` assignment and the `finally` then writes `turn/end` with
+ * `reason: null` (#8832, #9156).
+ *
+ * The configured string is the cause's `reason`, not its `kind`, so the config
+ * surface is unchanged: `cancelCause: 'x'` reads back as
+ * `{ kind: 'aborted', reason: { kind: 'hook', reason: 'x' } }`.
+ *
+ * @param reason - the resolved `cancelCause` string.
+ * @returns a cause the loop's closed-union switch returns instead of throwing.
+ */
+export function cancelCauseFor(reason: string): AgentCancelCause {
+  return { kind: 'hook', reason }
 }
 
 /** The subset of an inbound message the guard inspects. */

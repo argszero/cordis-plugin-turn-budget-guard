@@ -18,8 +18,9 @@ import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 
-import { DEFAULTS, PLUGIN_NAME, decide, hasUserText, initialState, resolveConfig } from './guard.js'
+import { DEFAULTS, PLUGIN_NAME, cancelCauseFor, decide, hasUserText, initialState, resolveConfig } from './guard.js'
 import type {
+  AgentCancelCause,
   BudgetState,
   ConfigInput,
   InboxMessage,
@@ -33,12 +34,13 @@ export {
   FINAL_TEXT,
   PLUGIN_NAME,
   WRAP_UP_TEXT,
+  cancelCauseFor,
   decide,
   hasUserText,
   initialState,
   resolveConfig,
 } from './guard.js'
-export type { BudgetAction, BudgetState, InboxMessage, ResolvedConfig } from './guard.js'
+export type { AgentCancelCause, BudgetAction, BudgetState, InboxMessage, ResolvedConfig } from './guard.js'
 
 /**
  * Plugin config; the runtime shape is {@link ConfigInput}. Declared here as a
@@ -110,9 +112,12 @@ export function apply(ctx: Context, config: Config = {}): void {
     if (action.kind === 'pass') return next()
 
     if (action.kind === 'cancel') {
-      // The cancel reason is what reaches the transcript: the aborted turn ends
+      // The cancel cause is what reaches the transcript: the aborted turn ends
       // with `{ kind: 'aborted', reason }` (`TurnEndReasonMap.aborted`), so the
-      // cause is the attribution — no extra message is invented here.
+      // cause is the attribution — no extra message is invented here. It must be
+      // a member of the closed `AgentCancelCause` union, and `cancelCauseFor`
+      // builds the `hook` member this plugin owns; `action.cause` is that
+      // member's `reason`, so the configured string still names the stop.
       //
       // `keepInbox: true` is deliberate. The default `cancel()` clears queued and
       // steering work (`runtime-types.ts` "Clear queued and steering work —
@@ -123,7 +128,7 @@ export function apply(ctx: Context, config: Config = {}): void {
         + ` (budget ${resolved.maxSteps} + grace ${resolved.gracefulSteps})`,
       )
       states.delete(key)
-      agent.cancel(action.cause, { keepInbox: true })
+      agent.cancel(cancelCauseFor(action.cause), { keepInbox: true })
       return next()
     }
 

@@ -1,7 +1,7 @@
 {
   "name": "@argszero/cordis-plugin-turn-budget-guard",
   "description": "Turn budget guard for dsh: caps the number of steps one agent turn may spend before the model is asked to wrap up, then stops the turn. Closes the 'no ceiling on action' gap measured in Discussion #6366 (33-50 turns / 32-70 tool calls for a one-field config edit). Watches agent/pre-step, never vetoes a productive turn, never discards user input. Compatible with dsh 0.1.2-rc.1 and the 0.1.5 line.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
